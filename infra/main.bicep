@@ -7,8 +7,13 @@ param acaName string
 @description('Display name for the Entra App')
 param entraAppDisplayName string
 
-@description('Full resource ID of the Storage Account that the MCP server will have access to through storage tools')
-param storageResourceId string
+@description('Azure MCP Server namespaces to enable. Specify one or more namespaces (e.g., ["storage"], ["costmanagement"], or ["storage", "compute"]). See https://github.com/microsoft/mcp/blob/main/servers/Azure.Mcp.Server/docs/azmcp-commands.md for available namespaces.')
+@minLength(1)
+@maxLength(3)
+param namespaces array = ['storage']
+
+@description('Full resource ID of the Storage Account that the MCP server will have access to through storage tools. Required only if "storage" namespace is included.')
+param storageResourceId string = ''
 
 @description('Microsoft Foundry project resource ID for assigning Entra App role to Foundry project managed identity')
 param foundryProjectResourceId string
@@ -49,16 +54,19 @@ module acaInfrastructure 'modules/aca-infrastructure.bicep' = {
     azureMcpCollectTelemetry: string(!empty(appInsights.outputs.connectionString))
     azureAdTenantId: tenant().tenantId
     azureAdClientId: entraApp.outputs.entraAppClientId
-    namespaces: ['storage']
+    namespaces: namespaces
   }
 }
+
+// Check if storage namespace is enabled
+var isStorageEnabled = contains(namespaces, 'storage')
 
 // Storage role definitions (read-only roles for the --read-only Azure MCP Server flag)
 var storageBlobDataReaderRoleId = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
 var readerRoleId = 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
 
-// Deploy Storage Blob Data Reader role assignment for ACA
-module acaStorageBlobRoleAssignment './modules/aca-role-assignment-resource.bicep' = {
+// Deploy Storage Blob Data Reader role assignment for ACA (only if storage namespace is enabled)
+module acaStorageBlobRoleAssignment './modules/aca-role-assignment-resource.bicep' = if (isStorageEnabled && !empty(storageResourceId)) {
   name: 'aca-storage-blob-role-assignment'
   params: {
     storageResourceId: storageResourceId
@@ -67,8 +75,8 @@ module acaStorageBlobRoleAssignment './modules/aca-role-assignment-resource.bice
   }
 }
 
-// Deploy Reader role assignment for ACA (read storage account properties)
-module acaStorageAccountRoleAssignment './modules/aca-role-assignment-resource.bicep' = {
+// Deploy Reader role assignment for ACA (read storage account properties, only if storage namespace is enabled)
+module acaStorageAccountRoleAssignment './modules/aca-role-assignment-resource.bicep' = if (isStorageEnabled && !empty(storageResourceId)) {
   name: 'aca-storage-account-role-assignment'
   params: {
     storageResourceId: storageResourceId
