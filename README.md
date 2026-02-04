@@ -22,6 +22,8 @@ The Azure MCP Server supports multiple namespaces covering different Azure servi
 
 You can enable 1-3 namespaces per deployment based on your needs.
 
+For detailed deployment examples and use cases, see [EXAMPLES.md](EXAMPLES.md).
+
 ## Quick Start
 
 This reference template deploys the Azure MCP Server with **read-only** Azure tools enabled, accessible over HTTPS transport. For details on customizing server startup flags and configuration, see [Azure MCP Server documentation](https://github.com/microsoft/mcp/blob/main/servers/Azure.Mcp.Server/docs/azmcp-commands.md).
